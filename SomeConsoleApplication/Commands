@@ -1,0 +1,6 @@
+dotnet sonarscanner begin /k:"dotnettest" /d:sonar.host.url="http://localhost:9000"  /d:sonar.token="sqp_290d75bbd28e1a6ff273bb56f99ec06e9d94ddfb"
+
+
+dotnet build SomeConsoleApplication.sln
+
+dotnet sonarscanner end /d:sonar.token="<token>"

@@ -1,0 +1,69 @@
+trigger:
+- master
+
+pr: 
+- branch-for-pr
+
+pool:
+  vmImage: 'vs2017-win2016'
+  demands:
+  - msbuild
+  - visualstudio
+  - vstest
+  - java
+
+schedules:
+- cron: "0 5 * * Mon-Sun"
+  displayName: 5:00 AM (UTC) daily build for master and feature branch
+  branches:
+    include:
+    - master
+    - branch-for-pr
+  always: true
+      
+
+variables:
+  buildConfiguration: 'Release'
+  buildPlatform: 'any cpu'
+
+steps:
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.4.1'
+  inputs:
+    versionSpec: 4.4.1
+
+- task: NuGetCommand@2
+  displayName: 'NuGet restore'
+  inputs:
+    restoreSolution: 'SomeConsoleApplication.sln'
+
+- task: SonarCloudPrepare@1
+  displayName: 'Prepare analysis on SonarCloud'
+  inputs:
+    SonarCloud: SC
+    organization: 'sonarsource-bitbucket'
+    projectKey: 'sonarsource_sample-dotnet-project-azuredevops'
+    projectName: 'sample-dotnet-project-azuredevops'
+
+- task: VSBuild@1
+  displayName: 'Build solution **\*.sln'
+  inputs:
+    solution: 'SomeConsoleApplication.sln'
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+
+- task: VSTest@2
+  displayName: 'VsTest - testAssemblies'
+  inputs:
+    testAssemblyVer2: |
+     **\$(BuildConfiguration)\*Test*.dll
+     !**\obj\**
+    codeCoverageEnabled: true
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+
+- task: SonarCloudAnalyze@1
+  displayName: 'Run Code Analysis'
+
+- task: SonarCloudPublish@1
+  displayName: 'Publish Quality Gate Result'
